@@ -75,7 +75,8 @@ class AvisosViewModel(
                 val aviso = Aviso(
                     origen = Origen.RECORDATORIO,
                     titulo = "Recordatorio",
-                    texto = "Revisa tu laboratorio pendiente"
+                    texto = "Revisa tu laboratorio pendiente. Consulta las indicaciones de la " +
+                        "actividad y verifica que tu entrega esté lista antes de enviarla."
                 )
                 publicarAviso(aviso)
             } finally {

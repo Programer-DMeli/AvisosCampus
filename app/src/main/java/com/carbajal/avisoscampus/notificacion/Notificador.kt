@@ -76,6 +76,7 @@ object Notificador {
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(aviso.titulo)
             .setContentText(aviso.texto)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(aviso.texto))
             .setPriority(prioridad)
             .setAutoCancel(true)
             .setContentIntent(pendiente)
