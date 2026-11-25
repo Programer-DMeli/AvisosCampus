@@ -10,3 +10,20 @@ Prompts preparados para Gemini en Android Studio. La columna de respuestas queda
 | **Texto largo.** Propón cómo usar `NotificationCompat.BigTextStyle` en `Notificador` para mostrar todo el mensaje de AvisosCampus al expandir una notificación. Conserva el texto de la vista compacta, el canal y la acción de abrir la app. Incluye un mensaje largo de recordatorio y un procedimiento para comprobar que se lee completo en el panel de Android. | Pendiente de consultar en Gemini. | Apliqué `BigTextStyle` con el cuerpo real del aviso y amplié el mensaje del recordatorio para comprobar la diferencia al expandirlo. | El Historial y la notificación usan el mismo texto. Android se encarga de mostrar su versión compacta y expandida. |
 | **Botón en la notificación.** Diseña una acción **Posponer 10 s** solo para el recordatorio, usando `addAction`, un `PendingIntent` explícito e inmutable y un `BroadcastReceiver` propio. Explica cómo reprogramar el aviso, registrar el resultado en el Historial y probarlo con la app visible, en segundo plano y con el proceso cerrado. Mantén `Context` y `NotificationManager` fuera del ViewModel. Distingue qué plazos pueden garantizarse según la versión de Android y cómo limpiar cualquier receptor dinámico en `onDispose`. | Pendiente de consultar en Gemini. | Opción registrada como candidata. Quedó fuera de las tres mejoras seleccionadas para esta rama. | Requiere definir cómo programar y registrar un recordatorio si el proceso termina y qué precisión se puede ofrecer en segundo plano. |
 | **Receptor del cargador.** Agrega una escucha independiente para `ACTION_POWER_CONNECTED` y `ACTION_POWER_DISCONNECTED` en AvisosCampus. Incluye un switch, una etiqueta propia en el Historial y los estados Conectado y Desconectado. Deja el receptor en Compose, desregístralo en `onDispose` y delega al ViewModel la creación del aviso sin pasarle `Context`. Propón pruebas con el switch activado, apagado y tras rotar la pantalla. | Pendiente de consultar en Gemini. | Añadí `CargadorReceiver`, un switch propio, el origen Cargador y un registro dinámico que sigue el ciclo de vida de la composición. | El usuario decide qué eventos escucha. El ViewModel mantiene el estado durante la rotación y los avisos del cargador usan el canal normal. |
+
+## Evidencias de las mejoras implementadas
+
+Capturas reales de AvisosCampus en el emulador Android 14.
+
+<table>
+  <tr>
+    <th scope="col" width="33%">Canales de notificación</th>
+    <th scope="col" width="33%">Texto expandible</th>
+    <th scope="col" width="33%">Receptor del cargador</th>
+  </tr>
+  <tr>
+    <td align="center"><a href="docs/capturas/fase-2/canales.png"><img src="docs/capturas/fase-2/canales.png" alt="Canales Avisos y Urgentes en los ajustes de notificaciones de AvisosCampus" width="240"></a></td>
+    <td align="center"><a href="docs/capturas/fase-2/texto-expandible.png"><img src="docs/capturas/fase-2/texto-expandible.png" alt="Notificación de recordatorio expandida con su mensaje completo" width="240"></a></td>
+    <td align="center"><a href="docs/capturas/fase-2/cargador.png"><img src="docs/capturas/fase-2/cargador.png" alt="Interruptor del cargador activado y estados Conectado y Desconectado en el Historial" width="240"></a></td>
+  </tr>
+</table>
