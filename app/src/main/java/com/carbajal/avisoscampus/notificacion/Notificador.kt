@@ -44,14 +44,12 @@ object Notificador {
     fun mostrar(context: Context, aviso: Aviso): Boolean {
         if (!tienePermiso(context)) return false
 
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent = PendingIntent.getActivity(
+        val intent = Intent(context, MainActivity::class.java)
+        val pendiente = PendingIntent.getActivity(
             context,
             0,
             intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_IMMUTABLE
         )
 
         val notification = NotificationCompat.Builder(context, CANAL)
@@ -60,7 +58,7 @@ object Notificador {
             .setContentText(aviso.texto)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(pendiente)
             .build()
 
         NotificationManagerCompat.from(context).notify(aviso.id.toInt(), notification)
