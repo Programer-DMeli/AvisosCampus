@@ -6,6 +6,8 @@ import com.carbajal.avisoscampus.data.AvisosRepository
 import com.carbajal.avisoscampus.model.Aviso
 import com.carbajal.avisoscampus.model.Origen
 import com.carbajal.avisoscampus.model.PermisoUi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +29,10 @@ class AvisosViewModel(
     private val _eventos = MutableSharedFlow<Aviso>()
     val eventos: SharedFlow<Aviso> = _eventos.asSharedFlow()
 
+    private var trabajo: Job? = null
+    private val _faltan = MutableStateFlow<Int?>(null)
+    val faltan: StateFlow<Int?> = _faltan.asStateFlow()
+
     fun permisoRespondido(concedido: Boolean) {
         _permiso.value = if (concedido) {
             PermisoUi.PERMITIDO
@@ -45,5 +51,30 @@ class AvisosViewModel(
             repository.agregar(aviso)
             _eventos.emit(aviso)
         }
+    }
+
+    fun recordarEn(segundos: Int = 10) {
+        if (trabajo?.isActive == true) return
+        trabajo = viewModelScope.launch {
+            try {
+                for (i in segundos downTo 1) {
+                    _faltan.value = i
+                    delay(1000)
+                }
+                val aviso = Aviso(
+                    origen = Origen.RECORDATORIO,
+                    titulo = "Recordatorio",
+                    texto = "Revisa tu laboratorio pendiente"
+                )
+                repository.agregar(aviso)
+                _eventos.emit(aviso)
+            } finally {
+                _faltan.value = null
+            }
+        }
+    }
+
+    fun cancelarRecordatorio() {
+        trabajo?.cancel()
     }
 }

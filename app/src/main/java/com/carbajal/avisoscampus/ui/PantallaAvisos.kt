@@ -20,6 +20,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     val context = LocalContext.current
     val permiso by vm.permiso.collectAsState()
     val avisos by vm.avisos.collectAsState(initial = emptyList())
+    val faltan by vm.faltan.collectAsState()
 
     val lanzador = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -89,6 +90,54 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Permitir notificaciones")
+                    }
+                }
+            }
+
+            // Card Recordatorio
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Recordatorio",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { vm.recordarEn(10) },
+                            enabled = faltan == null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Recordar en 10 s")
+                        }
+
+                        Button(
+                            onClick = { vm.cancelarRecordatorio() },
+                            enabled = faltan != null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancelar")
+                        }
+                    }
+
+                    if (faltan != null) {
+                        Text(
+                            text = "Faltan $faltan s",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
                     }
                 }
             }
