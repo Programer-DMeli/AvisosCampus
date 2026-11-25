@@ -3,6 +3,7 @@ package com.carbajal.avisoscampus.viewmodel
 import android.app.Application
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,7 +15,6 @@ import com.carbajal.avisoscampus.notificacion.Notificador
 import com.carbajal.avisoscampus.receiver.ModoAvionReceiver
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +28,10 @@ class AvisosViewModel(
     private val _permiso = MutableStateFlow(PermisoUi.SIN_PEDIR)
     val permiso: StateFlow<PermisoUi> = _permiso.asStateFlow()
 
-    val avisos: Flow<List<Aviso>> = repository.avisos
+    private val _mensaje = MutableStateFlow<String?>(null)
+    val mensaje: StateFlow<String?> = _mensaje.asStateFlow()
+
+    val avisos: StateFlow<List<Aviso>> = repository.avisos
 
     private var trabajo: Job? = null
     private val _faltan = MutableStateFlow<Int?>(null)
@@ -40,10 +43,25 @@ class AvisosViewModel(
 
     fun permisoRespondido(concedido: Boolean) {
         _permiso.value = if (concedido) {
+            _mensaje.value = null
             PermisoUi.PERMITIDO
         } else {
             PermisoUi.DENEGADO
         }
+    }
+
+    fun actualizarPermiso() {
+        val concedido = Notificador.tienePermiso(aplicacion)
+        if (concedido || _permiso.value != PermisoUi.SIN_PEDIR ||
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+        ) {
+            permisoRespondido(concedido)
+        }
+    }
+
+    fun noSePudoMostrar() {
+        permisoRespondido(false)
+        _mensaje.value = "Sin permiso: el aviso se guardó en el historial, pero no se mostró"
     }
 
     fun avisaraHora() {
@@ -113,7 +131,9 @@ class AvisosViewModel(
 
     private suspend fun publicarAviso(aviso: Aviso) {
         repository.agregar(aviso)
-        Notificador.mostrar(aplicacion, aviso)
+        if (!Notificador.mostrar(aplicacion, aviso)) {
+            noSePudoMostrar()
+        }
     }
 
     override fun onCleared() {

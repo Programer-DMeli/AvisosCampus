@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -35,14 +36,15 @@ object Notificador {
     }
 
     fun tienePermiso(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT < 33) {
-            true
-        } else {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
         }
+        return NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 
     @SuppressLint("MissingPermission")
@@ -51,7 +53,13 @@ object Notificador {
         Log.d("Notificador", "mostrar: ${aviso.titulo} - ${aviso.texto}, tienePermiso=$perm")
         if (!perm) return false
 
-        val intent = Intent(context, MainActivity::class.java)
+        val intent = Intent.makeMainActivity(ComponentName(context, MainActivity::class.java)).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            )
+        }
         val pendiente = PendingIntent.getActivity(
             context,
             0,

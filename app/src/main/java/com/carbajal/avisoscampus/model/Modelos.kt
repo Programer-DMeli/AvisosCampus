@@ -6,10 +6,10 @@ enum class PermisoUi {
     DENEGADO
 }
 
-enum class Origen {
-    BOTON,
-    RECORDATORIO,
-    MODO_AVION
+enum class Origen(val texto: String) {
+    BOTON("Botón"),
+    RECORDATORIO("Recordatorio"),
+    MODO_AVION("Modo avión")
 }
 
 data class Aviso(
