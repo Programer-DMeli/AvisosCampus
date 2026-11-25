@@ -1,18 +1,11 @@
 package com.carbajal.avisoscampus.viewmodel
 
-import android.app.Application
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.Build
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.carbajal.avisoscampus.data.AvisosRepository
 import com.carbajal.avisoscampus.model.Aviso
 import com.carbajal.avisoscampus.model.Origen
 import com.carbajal.avisoscampus.model.PermisoUi
-import com.carbajal.avisoscampus.notificacion.Notificador
-import com.carbajal.avisoscampus.receiver.ModoAvionReceiver
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,8 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AvisosViewModel(
-    private val aplicacion: Application,
-    private val repository: AvisosRepository
+    private val repository: AvisosRepository,
+    private val mostrarNotificacion: (Aviso) -> Boolean
 ) : ViewModel() {
 
     private val _permiso = MutableStateFlow(PermisoUi.SIN_PEDIR)
@@ -39,7 +32,6 @@ class AvisosViewModel(
 
     private val _escuchandoAvion = MutableStateFlow(false)
     val escuchandoAvion: StateFlow<Boolean> = _escuchandoAvion.asStateFlow()
-    private val receptorModoAvion = ModoAvionReceiver(::alCambiarModoAvion)
 
     fun permisoRespondido(concedido: Boolean) {
         _permiso.value = if (concedido) {
@@ -50,11 +42,8 @@ class AvisosViewModel(
         }
     }
 
-    fun actualizarPermiso() {
-        val concedido = Notificador.tienePermiso(aplicacion)
-        if (concedido || _permiso.value != PermisoUi.SIN_PEDIR ||
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
-        ) {
+    fun actualizarPermiso(concedido: Boolean, requiereSolicitud: Boolean) {
+        if (concedido || _permiso.value != PermisoUi.SIN_PEDIR || !requiereSolicitud) {
             permisoRespondido(concedido)
         }
     }
@@ -100,22 +89,10 @@ class AvisosViewModel(
     }
 
     fun cambiarEscucha(valor: Boolean) {
-        if (_escuchandoAvion.value == valor) return
-
-        if (valor) {
-            ContextCompat.registerReceiver(
-                aplicacion,
-                receptorModoAvion,
-                IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED),
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-        } else {
-            aplicacion.unregisterReceiver(receptorModoAvion)
-        }
         _escuchandoAvion.value = valor
     }
 
-    private fun alCambiarModoAvion(activo: Boolean) {
+    fun alCambiarModoAvion(activo: Boolean) {
         if (!_escuchandoAvion.value) return
 
         viewModelScope.launch {
@@ -131,13 +108,9 @@ class AvisosViewModel(
 
     private suspend fun publicarAviso(aviso: Aviso) {
         repository.agregar(aviso)
-        if (!Notificador.mostrar(aplicacion, aviso)) {
+        if (!mostrarNotificacion(aviso)) {
             noSePudoMostrar()
         }
     }
 
-    override fun onCleared() {
-        cambiarEscucha(false)
-        super.onCleared()
-    }
 }

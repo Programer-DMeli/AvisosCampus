@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -25,10 +26,12 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.carbajal.avisoscampus.model.PermisoUi
 import com.carbajal.avisoscampus.notificacion.Notificador
+import com.carbajal.avisoscampus.receiver.ModoAvionReceiver
 import com.carbajal.avisoscampus.viewmodel.AvisosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,7 +51,24 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        vm.actualizarPermiso()
+        vm.actualizarPermiso(
+            concedido = Notificador.tienePermiso(context),
+            requiereSolicitud = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+        )
+    }
+
+    if (escuchando) {
+        val aplicacion = context.applicationContext
+        DisposableEffect(aplicacion, vm) {
+            val receptor = ModoAvionReceiver(vm::alCambiarModoAvion)
+            ContextCompat.registerReceiver(
+                aplicacion,
+                receptor,
+                IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            onDispose { aplicacion.unregisterReceiver(receptor) }
+        }
     }
 
     Scaffold(

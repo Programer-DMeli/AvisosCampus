@@ -21,7 +21,8 @@ import com.carbajal.avisoscampus.model.Origen
 
 object Notificador {
     private const val CANAL_AVISOS = "avisos"
-    private const val CANAL_MODO_AVION = "modo_avion"
+    // Conserva el canal existente y los ajustes que el usuario haya elegido.
+    private const val CANAL_URGENTES = "modo_avion"
 
     fun crearCanales(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -30,7 +31,7 @@ object Notificador {
                 NotificationChannel(CANAL_AVISOS, "Avisos", NotificationManager.IMPORTANCE_DEFAULT)
             )
             manager.createNotificationChannel(
-                NotificationChannel(CANAL_MODO_AVION, "Modo avión", NotificationManager.IMPORTANCE_HIGH)
+                NotificationChannel(CANAL_URGENTES, "Urgentes", NotificationManager.IMPORTANCE_HIGH)
             )
         }
     }
@@ -67,9 +68,9 @@ object Notificador {
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        val esModoAvion = aviso.origen == Origen.MODO_AVION
-        val canal = if (esModoAvion) CANAL_MODO_AVION else CANAL_AVISOS
-        val prioridad = if (esModoAvion) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
+        val urgente = aviso.origen == Origen.RECORDATORIO || aviso.origen == Origen.MODO_AVION
+        val canal = if (urgente) CANAL_URGENTES else CANAL_AVISOS
+        val prioridad = if (urgente) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
 
         val notification = NotificationCompat.Builder(context, canal)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
