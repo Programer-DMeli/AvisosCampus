@@ -9,7 +9,8 @@ enum class PermisoUi {
 enum class Origen(val texto: String) {
     BOTON("Botón"),
     RECORDATORIO("Recordatorio"),
-    MODO_AVION("Modo avión")
+    MODO_AVION("Modo avión"),
+    CARGADOR("Cargador")
 }
 
 data class Aviso(

@@ -106,6 +106,7 @@ private fun EtiquetaOrigen(origen: Origen) {
         Origen.BOTON -> Color(0xFF226DB1)
         Origen.RECORDATORIO -> Color(0xFFF4AA00)
         Origen.MODO_AVION -> Color(0xFF7350B9)
+        Origen.CARGADOR -> Color(0xFF21654C)
     }
     val texto = if (origen == Origen.RECORDATORIO) Color(0xFF2B1B00) else Color.White
 

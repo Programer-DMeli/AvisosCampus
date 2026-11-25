@@ -14,6 +14,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -31,6 +33,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.carbajal.avisoscampus.model.PermisoUi
 import com.carbajal.avisoscampus.notificacion.Notificador
+import com.carbajal.avisoscampus.receiver.CargadorReceiver
 import com.carbajal.avisoscampus.receiver.ModoAvionReceiver
 import com.carbajal.avisoscampus.viewmodel.AvisosViewModel
 
@@ -43,6 +46,8 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     val avisos by vm.avisos.collectAsState()
     val faltan by vm.faltan.collectAsState()
     val escuchando by vm.escuchandoAvion.collectAsState()
+    val escuchandoCargador by vm.escuchandoCargador.collectAsState()
+    val aplicacion = context.applicationContext
 
     val lanzador = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -58,13 +63,29 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     }
 
     if (escuchando) {
-        val aplicacion = context.applicationContext
         DisposableEffect(aplicacion, vm) {
             val receptor = ModoAvionReceiver(vm::alCambiarModoAvion)
             ContextCompat.registerReceiver(
                 aplicacion,
                 receptor,
                 IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            onDispose { aplicacion.unregisterReceiver(receptor) }
+        }
+    }
+
+    if (escuchandoCargador) {
+        DisposableEffect(aplicacion, vm) {
+            val receptor = CargadorReceiver(vm::alCambiarCargador)
+            val filtro = IntentFilter().apply {
+                addAction(Intent.ACTION_POWER_CONNECTED)
+                addAction(Intent.ACTION_POWER_DISCONNECTED)
+            }
+            ContextCompat.registerReceiver(
+                aplicacion,
+                receptor,
+                filtro,
                 ContextCompat.RECEIVER_NOT_EXPORTED
             )
             onDispose { aplicacion.unregisterReceiver(receptor) }
@@ -209,7 +230,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                 }
             }
 
-            // Card Receptor de anuncios (Modo avión)
+            // Card Receptor de anuncios
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -226,33 +247,51 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Escuchar el modo avión",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Text(
-                                text = "Activa o desactiva el modo avión del celular",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = escuchando,
-                            onCheckedChange = { vm.cambiarEscucha(it) }
-                        )
-                    }
+                    InterruptorReceptor(
+                        titulo = "Escuchar el modo avión",
+                        descripcion = "Activa o desactiva el modo avión del celular",
+                        activo = escuchando,
+                        alCambiar = vm::cambiarEscucha
+                    )
+                    InterruptorReceptor(
+                        titulo = "Escuchar el cargador",
+                        descripcion = "Avisa al conectar o desconectar el cargador",
+                        activo = escuchandoCargador,
+                        alCambiar = vm::cambiarEscuchaCargador
+                    )
                 }
             }
 
             // Historial
             HistorialAvisos(avisos)
         }
+    }
+}
+
+@Composable
+private fun InterruptorReceptor(
+    titulo: String,
+    descripcion: String,
+    activo: Boolean,
+    alCambiar: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = activo, role = Role.Switch, onValueChange = alCambiar)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = titulo, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = descripcion,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(checked = activo, onCheckedChange = null)
     }
 }
 
