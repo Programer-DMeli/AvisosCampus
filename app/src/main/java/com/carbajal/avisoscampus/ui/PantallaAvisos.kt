@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,10 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -133,31 +134,11 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                 }
             }
 
-            mensaje?.let { texto ->
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { liveRegion = LiveRegionMode.Polite },
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                ) {
-                    Text(
-                        text = texto,
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
             if (permiso == PermisoUi.DENEGADO) {
-                OutlinedButton(
-                    onClick = { abrirAjustesNotificaciones(context) },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text("Abrir ajustes")
-                }
+                AvisoPermisoDenegado(
+                    mensaje = mensaje,
+                    alAbrirAjustes = { abrirAjustesNotificaciones(context) }
+                )
             }
 
             // Card Recordatorio
@@ -251,6 +232,42 @@ fun PantallaAvisos(vm: AvisosViewModel) {
 
             // Historial
             HistorialAvisos(avisos)
+        }
+    }
+}
+
+@Composable
+private fun AvisoPermisoDenegado(mensaje: String?, alAbrirAjustes: () -> Unit) {
+    val colores = MaterialTheme.colorScheme
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = colores.errorContainer,
+        contentColor = colores.onErrorContainer
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Notificaciones bloqueadas",
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = mensaje ?: "Activa las notificaciones de AvisosCampus en Ajustes.",
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                style = MaterialTheme.typography.bodyMedium
+            )
+            OutlinedButton(
+                onClick = alAbrirAjustes,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = colores.onErrorContainer),
+                border = BorderStroke(1.dp, colores.onErrorContainer.copy(alpha = 0.65f))
+            ) {
+                Text("Abrir ajustes")
+            }
         }
     }
 }
