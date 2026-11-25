@@ -7,7 +7,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -20,6 +19,7 @@ import com.carbajal.avisoscampus.viewmodel.AvisosViewModel
 fun PantallaAvisos(vm: AvisosViewModel) {
     val context = LocalContext.current
     val permiso by vm.permiso.collectAsState()
+    val avisos by vm.avisos.collectAsState(initial = emptyList())
 
     val lanzador = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -30,6 +30,9 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     LaunchedEffect(Unit) {
         if (Notificador.tienePermiso(context)) {
             vm.permisoRespondido(true)
+        }
+        vm.eventos.collect { aviso ->
+            Notificador.mostrar(context, aviso)
         }
     }
 
@@ -51,6 +54,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Card Permiso
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -88,6 +92,39 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                     }
                 }
             }
+
+            // Card Avisos (Mostrar aviso)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Avisos",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Button(
+                        onClick = { vm.avisaraHora() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Mostrar aviso")
+                    }
+                }
+            }
+
+            // Historial
+            HistorialAvisos(
+                avisos = avisos,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
         }
     }
 }
