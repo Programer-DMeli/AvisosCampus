@@ -17,7 +17,7 @@ import com.carbajal.avisoscampus.viewmodel.AvisosViewModelFactory
 class MainActivity : ComponentActivity() {
     private val repository = AvisosRepositoryMemoria()
     private val vm: AvisosViewModel by viewModels {
-        AvisosViewModelFactory(repository)
+        AvisosViewModelFactory(application, repository)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

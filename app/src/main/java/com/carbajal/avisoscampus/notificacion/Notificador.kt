@@ -9,23 +9,28 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.carbajal.avisoscampus.MainActivity
 import com.carbajal.avisoscampus.R
 import com.carbajal.avisoscampus.model.Aviso
+import com.carbajal.avisoscampus.model.Origen
 
 object Notificador {
-    const val CANAL = "avisos"
+    private const val CANAL_AVISOS = "avisos"
+    private const val CANAL_MODO_AVION = "modo_avion"
 
-    fun crearCanal(context: Context) {
+    fun crearCanales(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Avisos"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CANAL, name, importance)
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+            val manager = context.getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(
+                NotificationChannel(CANAL_AVISOS, "Avisos", NotificationManager.IMPORTANCE_DEFAULT)
+            )
+            manager.createNotificationChannel(
+                NotificationChannel(CANAL_MODO_AVION, "Modo avión", NotificationManager.IMPORTANCE_HIGH)
+            )
         }
     }
 
@@ -42,7 +47,9 @@ object Notificador {
 
     @SuppressLint("MissingPermission")
     fun mostrar(context: Context, aviso: Aviso): Boolean {
-        if (!tienePermiso(context)) return false
+        val perm = tienePermiso(context)
+        Log.d("Notificador", "mostrar: ${aviso.titulo} - ${aviso.texto}, tienePermiso=$perm")
+        if (!perm) return false
 
         val intent = Intent(context, MainActivity::class.java)
         val pendiente = PendingIntent.getActivity(
@@ -52,11 +59,15 @@ object Notificador {
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, CANAL)
+        val esModoAvion = aviso.origen == Origen.MODO_AVION
+        val canal = if (esModoAvion) CANAL_MODO_AVION else CANAL_AVISOS
+        val prioridad = if (esModoAvion) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
+
+        val notification = NotificationCompat.Builder(context, canal)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(aviso.titulo)
             .setContentText(aviso.texto)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(prioridad)
             .setAutoCancel(true)
             .setContentIntent(pendiente)
             .build()

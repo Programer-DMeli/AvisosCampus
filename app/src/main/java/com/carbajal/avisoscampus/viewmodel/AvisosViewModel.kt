@@ -1,23 +1,27 @@
 package com.carbajal.avisoscampus.viewmodel
 
+import android.app.Application
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.carbajal.avisoscampus.data.AvisosRepository
 import com.carbajal.avisoscampus.model.Aviso
 import com.carbajal.avisoscampus.model.Origen
 import com.carbajal.avisoscampus.model.PermisoUi
+import com.carbajal.avisoscampus.notificacion.Notificador
+import com.carbajal.avisoscampus.receiver.ModoAvionReceiver
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AvisosViewModel(
+    private val aplicacion: Application,
     private val repository: AvisosRepository
 ) : ViewModel() {
 
@@ -26,12 +30,13 @@ class AvisosViewModel(
 
     val avisos: Flow<List<Aviso>> = repository.avisos
 
-    private val _eventos = MutableSharedFlow<Aviso>()
-    val eventos: SharedFlow<Aviso> = _eventos.asSharedFlow()
-
     private var trabajo: Job? = null
     private val _faltan = MutableStateFlow<Int?>(null)
     val faltan: StateFlow<Int?> = _faltan.asStateFlow()
+
+    private val _escuchandoAvion = MutableStateFlow(false)
+    val escuchandoAvion: StateFlow<Boolean> = _escuchandoAvion.asStateFlow()
+    private val receptorModoAvion = ModoAvionReceiver(::alCambiarModoAvion)
 
     fun permisoRespondido(concedido: Boolean) {
         _permiso.value = if (concedido) {
@@ -48,8 +53,7 @@ class AvisosViewModel(
                 titulo = "Tarea lista",
                 texto = "Tu entrega fue registrada"
             )
-            repository.agregar(aviso)
-            _eventos.emit(aviso)
+            publicarAviso(aviso)
         }
     }
 
@@ -66,8 +70,7 @@ class AvisosViewModel(
                     titulo = "Recordatorio",
                     texto = "Revisa tu laboratorio pendiente"
                 )
-                repository.agregar(aviso)
-                _eventos.emit(aviso)
+                publicarAviso(aviso)
             } finally {
                 _faltan.value = null
             }
@@ -76,5 +79,45 @@ class AvisosViewModel(
 
     fun cancelarRecordatorio() {
         trabajo?.cancel()
+    }
+
+    fun cambiarEscucha(valor: Boolean) {
+        if (_escuchandoAvion.value == valor) return
+
+        if (valor) {
+            ContextCompat.registerReceiver(
+                aplicacion,
+                receptorModoAvion,
+                IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            aplicacion.unregisterReceiver(receptorModoAvion)
+        }
+        _escuchandoAvion.value = valor
+    }
+
+    private fun alCambiarModoAvion(activo: Boolean) {
+        if (!_escuchandoAvion.value) return
+
+        viewModelScope.launch {
+            val estado = if (activo) "Activado" else "Desactivado"
+            val aviso = Aviso(
+                origen = Origen.MODO_AVION,
+                titulo = "Modo avión",
+                texto = estado
+            )
+            publicarAviso(aviso)
+        }
+    }
+
+    private suspend fun publicarAviso(aviso: Aviso) {
+        repository.agregar(aviso)
+        Notificador.mostrar(aplicacion, aviso)
+    }
+
+    override fun onCleared() {
+        cambiarEscucha(false)
+        super.onCleared()
     }
 }
